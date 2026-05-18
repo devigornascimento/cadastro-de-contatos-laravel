@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Meus Contatos - Integração API</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            max-width: 400px;
+            margin: auto;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        input,
+        button {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+
+        button {
+            background-color: #2d3748;
+            color: white;
+            cursor: pointer;
+            border: none;
+        }
+
+        button:hover {
+            background-color: #4a5568;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        #lista-contatos {
+            list-style: none;
+            padding: 0;
+        }
+
+        #lista-contatos li {
+            background: #edf2f7;
+            margin: 5px 0;
+            padding: 10px;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container" id="tela-login">
+        <h2>Entrar no Sistema</h2>
+        <input type="email" id="email" placeholder="Seu E-mail" value="igor.teste@empresa.com">
+        <input type="password" id="senha" placeholder="Sua Senha" value="SenhaSegura@2026">
+        <button onclick="fazerLogin()">Pegar Crachá (Login)</button>
+        <p id="mensagem-login" style="color: red;"></p>
+    </div>
+
+    <div class="container hidden" id="tela-sistema">
+        <h2>Meus Contatos</h2>
+        <button onclick="fazerLogout()" style="background-color: #e53e3e;">Sair (Devolver Crachá)</button>
+
+        <hr>
+        <h3>Novo Contato</h3>
+        <input type="text" id="nome-contato" placeholder="Nome do Contato">
+        <input type="text" id="telefone-contato" placeholder="Telefone (11 dígitos)">
+        <button onclick="salvarContato()">Salvar Contato</button>
+        <p id="mensagem-erro" style="color: red;"></p>
+
+        <hr>
+        <h3>Lista Salva no Banco:</h3>
+        <ul id="lista-contatos"></ul>
+    </div>
+
+    <script>
+        // URL base da nossa API no Docker
+        const API_URL = "http://localhost/api";
+
+        // FUNÇÃO 1: Ir na recepção e pegar o Token
+        async function fazerLogin() {
+            const email = document.getElementById('email').value;
+            const senha = document.getElementById('senha').value;
+
+            try {
+                const resposta = await fetch(`${API_URL}/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                    body: JSON.stringify({ email: email, password: senha })
+                });
+
+                const dados = await resposta.json();
+
+                if (resposta.ok) {
+                    // Guarda o "crachá" na carteira do navegador (localStorage)
+                    localStorage.setItem('meu_token', dados.token);
+
+                    // Esconde o login e mostra o sistema
+                    document.getElementById('tela-login').classList.add('hidden');
+                    document.getElementById('tela-sistema').classList.remove('hidden');
+
+                    // Chama a telefonista para listar os contatos
+                    carregarContatos();
+                } else {
+                    document.getElementById('mensagem-login').innerText = dados.message;
+                }
+            } catch (erro) {
+                console.error("Erro ao conectar na API:", erro);
+            }
+        }
+
+        // FUNÇÃO 2: Buscar contatos usando o Token (A catraca)
+        async function carregarContatos() {
+            const token = localStorage.getItem('meu_token'); // Pega o crachá da carteira
+
+            const resposta = await fetch(`${API_URL}/contacts`, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json',
+                    'Authorization': `Bearer ${token}` // Pendura o crachá na requisição
+                }
+            });
+
+            const contatos = await resposta.json();
+            const lista = document.getElementById('lista-contatos');
+            lista.innerHTML = ''; // Limpa a lista antes de preencher
+
+            // Cria um item visual para cada contato que veio do Banco de Dados
+            contatos.forEach(contato => {
+                let li = document.createElement('li');
+                li.innerText = `${contato.nome} - Tel: ${contato.telefone}`;
+                lista.appendChild(li);
+            });
+        }
+
+        // FUNÇÃO 3: Salvar novo contato (Passando pelos fiscais de inspeção)
+        async function salvarContato() {
+            const token = localStorage.getItem('meu_token');
+            const nome = document.getElementById('nome-contato').value;
+            const telefone = document.getElementById('telefone-contato').value;
+
+            const resposta = await fetch(`${API_URL}/contacts`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ nome: nome, telefone: telefone })
+            });
+
+            if (resposta.ok) {
+                document.getElementById('nome-contato').value = '';
+                document.getElementById('telefone-contato').value = '';
+                document.getElementById('mensagem-erro').innerText = '';
+                carregarContatos(); // Recarrega a lista para mostrar o novo
+            } else {
+                const erro = await resposta.json();
+                document.getElementById('mensagem-erro').innerText = erro.message;
+            }
+        }
+
+        // FUNÇÃO 4: Logout
+        function fazerLogout() {
+            localStorage.removeItem('meu_token'); // Joga o crachá fora
+            document.getElementById('tela-sistema').classList.add('hidden');
+            document.getElementById('tela-login').classList.remove('hidden');
+        }
+    </script>
+</body>
+
+</html>
