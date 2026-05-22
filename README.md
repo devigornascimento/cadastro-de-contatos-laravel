@@ -52,10 +52,6 @@ Durante a construção do ecossistema, nos deparamos com desafios técnicos reai
 
 ## Como Utilizar o Projeto
 
-### Pré-requisitos
-* Windows 11 com WSL2 (Ubuntu) instalado.
-* Docker Desktop configurado e rodando.
-
 ### Inicialização do Ambiente
 1.  Abra o terminal do Ubuntu e navegue até a pasta do projeto.
 2.  Suba os contêineres Docker em segundo plano:
